@@ -1,0 +1,23 @@
+# Ignore ROS 2 build artifacts
+/build/
+/install/
+/log/
+colcon/
+colcon.meta
+
+# Ignore Python compiled files
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore VSCode and JetBrains IDE configs
+.vscode/
+.idea/
+
+# Ignore ROS 2 generated files
+rosidl_generator_py/
+rosidl_generator_cpp/
+rosidl_typesupport_cpp/
+rosidl_typesupport_c/
+rosidl_runtime_cpp/
+rosidl_runtime_c/
