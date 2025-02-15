@@ -384,7 +384,8 @@ def generate_launch_description():
             default_value=PathJoinSubstitution([
                 FindPackageShare('interbotix_common_sim'),
                 'worlds',
-                'interbotix.world',
+                # 'interbotix.world',
+                'vision_kit.world',
             ]),
             description="the file path to the Gazebo 'world' file to load.",
         )

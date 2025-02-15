@@ -34,7 +34,7 @@ class Collector(Node):
     # def timer_callback(self):
     #     msg = String()
     #     msg.data = 'Hello, ROS 2!'
-    #     self.publisher_.publish(msg)
+    #     self.publisher_.publish(msg) 
     #     self.get_logger().info(f'Publishing: {msg.data}')
 
     def joint_callback(self, data):

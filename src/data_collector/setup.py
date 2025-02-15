@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'collector = data_collector.collector_script:main',
+            'point_cloud = data_collector.collector_script:main',
         ],
     },
 )

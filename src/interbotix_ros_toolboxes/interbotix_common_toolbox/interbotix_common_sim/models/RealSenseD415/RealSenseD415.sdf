@@ -1,10 +1,10 @@
 <?xml version='1.0'?>
 <sdf version='1.7'>
   <model name="RealSenseD415">
-    <pose>0 0 0 0 0 0 0</pose>
+    <pose>0 0 0 0 0 0</pose>
     <link name="camera">
       <visual name="camera_visual">
-        <pose>0 0 0 0 0 0 0</pose>
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
             <uri>model://RealSenseD415/camera.stl</uri>
@@ -13,7 +13,7 @@
         </geometry>
       </visual>
       <collision name="camera_collision">
-        <pose>0 0 0 0 0 0 0</pose>
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
             <uri>model://RealSenseD415/camera.stl</uri>
@@ -22,6 +22,6 @@
         </geometry>
       </collision>
     </link>
-    <static>1</static>
+    <static>0</static>  <!-- Set to 0 to allow movement if needed -->
   </model>
 </sdf>
