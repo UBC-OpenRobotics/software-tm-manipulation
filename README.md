@@ -2,6 +2,10 @@
 
 This repository contains source files and packages for robotic manipulation using Interbotix arms. The project includes data collection scripts and integrates various Interbotix ROS 2 packages for robotic control and visualization.
 
+## Important Links
+- Draw.io: https://drive.google.com/file/d/1GFC-9pm8g2PJJFznMbJC_jBeHdeerQDY/view?usp=sharing
+
+
 ## Repository Overview
 
 ### Packages
