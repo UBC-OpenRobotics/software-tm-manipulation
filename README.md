@@ -41,12 +41,3 @@ ros2 run data_collector collector_script.py
 ros2 run data_collector point_cloud.py
 ```
 
-## Contributing
-Contributions are welcome! Feel free to open issues or submit pull requests.
-
-## License
-This project is licensed under [YOUR LICENSE].
-
-## Contact
-For questions or collaboration, contact **[Your Name]** at [your_email@example.com].
-
