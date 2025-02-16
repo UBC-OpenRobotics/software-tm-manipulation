@@ -41,3 +41,12 @@ ros2 run data_collector collector_script.py
 ros2 run data_collector point_cloud.py
 ```
 
+### Training Environment
+
+```bash
+ros2 launch interbotix_xsarm_moveit xsarm_moveit.launch.py robot_model:=rx150 hardware_type:=gz_classic
+```
+
+### Rviz2 Visualization
+
+To render pointCloud2 data one should change the global frame to `camera_depth_frame`
