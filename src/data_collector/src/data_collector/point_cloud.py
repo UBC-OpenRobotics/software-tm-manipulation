@@ -4,8 +4,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2, PointField
 import numpy as np
-import tf2_ros
-import tf_transformations as tf
+import struct
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Header
 from builtin_interfaces.msg import Time
@@ -22,9 +21,6 @@ class PointCloudCollector(Node):
         # Publisher for filtered point cloud
         self.points_publisher = self.create_publisher(PointCloud2, 'filtered_point_cloud', 10)
 
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
-
         self.get_logger().info("PointCloudCollector has started.")
 
     def point_subscriber(self, data):   
@@ -37,18 +33,19 @@ class PointCloudCollector(Node):
 
         ######################################
 
-        # Lookup transform from "base_link" to "map"
-        transform_stamped = self.tf_buffer.lookup_transform('rx150/base_link', 'world', rclpy.time.Time())
+        # Define a 45-degree rotation around Z-axis and a translation (1, 2, 3)
+        theta = np.radians(45)
+        cos_t, sin_t = np.cos(theta), np.sin(theta)
 
-        # Convert TransformStamped to a 4x4 transformation matrix
-        transformation_matrix = self.transform_to_matrix(transform_stamped)
+        transformation = np.array([
+            [cos_t, -sin_t, 0, 0.0],  # Rotate & move x
+            [sin_t, cos_t,  0, 0.0],  # Rotate & move y
+            [0,     0,      1, -1.0],  # Move z
+            [0,     0,      0, 1]     # Homogeneous row
+        ])
 
-        # Convert to homogeneous coordinates (N,4)
-        ones = np.ones((np_msg.shape[0], 1))
-        np_points_homogeneous = np.hstack((np_msg, ones))
-
-        # Apply transformation
-        transformed_points = (transformation_matrix @ np_points_homogeneous.T).T[:, :3]  # (N,3)
+        # Transform the points
+        transformed_points = self.transform_point_cloud(np_msg, transformation)
 
         ######################################
 
@@ -81,21 +78,37 @@ class PointCloudCollector(Node):
         """Converts PointCloud2 message to NumPy array."""
         return point_cloud2.read_points_numpy(points_msg, field_names=['x', 'y', 'z', "rgb"], skip_nans=True)
 
-    def transform_to_matrix(self, transform_stamped):
-        """Convert a ROS TransformStamped to a 4x4 homogeneous transformation matrix."""
-        t = transform_stamped.transform.translation
-        q = transform_stamped.transform.rotation
+    def transform_point_cloud(self, points, transformation):
+        """
+        Applies a 4x4 transformation matrix to a point cloud.
 
-        # Convert quaternion to rotation matrix
-        rotation_matrix = tf.quaternion_matrix([q.x, q.y, q.z, q.w])[:3, :3]
+        Args:
+            points (np.ndarray): Nx4 array where each row is [x, y, z, rgb].
+            transformation (np.ndarray): 4x4 transformation matrix.
 
-        # Construct 4x4 transformation matrix
-        transformation_matrix = np.eye(4)
-        transformation_matrix[:3, :3] = rotation_matrix
-        transformation_matrix[:3, 3] = [t.x, t.y, t.z]
+        Returns:
+            np.ndarray: Nx4 transformed point cloud.
+        """
+        if points.shape[1] != 4:
+            raise ValueError("Input points must have shape (N, 4) with [x, y, z, rgb]")
 
-        return transformation_matrix
-    
+        # Convert points to homogeneous coordinates (Nx4 -> Nx3 + Nx1)
+        xyz = points[:, :3]  # Extract x, y, z
+        ones = np.ones((xyz.shape[0], 1))  # Homogeneous coordinate
+
+        # Convert to (N, 4) for matrix multiplication
+        xyz_homogeneous = np.hstack((xyz, ones))
+
+        # Apply transformation (Nx4) @ (4x4) -> (Nx4)
+        transformed_xyz_homogeneous = xyz_homogeneous @ transformation.T
+
+        # Extract transformed x, y, z (ignore homogeneous coordinate)
+        transformed_xyz = transformed_xyz_homogeneous[:, :3]
+
+        # Keep original RGB values
+        transformed_points = np.hstack((transformed_xyz, points[:, 3:4]))
+
+        return transformed_points
 
 def main(args=None):
     rclpy.init(args=args)
