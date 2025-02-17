@@ -95,8 +95,9 @@
         </camera>
 
         <!-- Gazebo Plugin for the depth Camera -->
-        <plugin name="depth_camera_controller" filename="libgazebo_ros_camera.so">
-          <frame_name>camera_depth_frame</frame_name>
+        <plugin name="depth_camera_controller" filename="libgazebo_ros_caemra.so">
+          <!-- <frameName>world</frameName> -->
+          <!-- <frame_id>world</frame_id> -->
           <min_depth>0.001</min_depth>
           <max_depth>100.0</max_depth>
         </plugin>
