@@ -18,23 +18,34 @@ class PointCloudCollector(Node):
     def __init__(self):
         super().__init__('point_cloud')
 
-        # Subscribe to original point cloud
-        self.points_subscriber = self.create_subscription(
-            PointCloud2, '/camera_sensor/points', self.point_subscriber, 10)
+        self.tf_broadcasted = False  # Flag to track if transform has been published
 
-        # Publisher for filtered point cloud
-        self.points_publisher = self.create_publisher(PointCloud2, 'filtered_point_cloud', 10)
+        self.timer = self.create_timer(0.1, self.broadcast_tf)
 
         self.tf_broadcaster = TransformBroadcaster(self)
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
-        self.timer = self.create_timer(0.1, self.broadcast_tf)
+        # Delay subscribing to point clouds for 0.5 seconds
+        self.create_timer(0.5, self.setup_subscriber)
+
+        # Publisher for filtered point cloud
+        self.points_publisher = self.create_publisher(PointCloud2, 'filtered_point_cloud', 10)
 
         self.get_logger().info("PointCloudCollector has started")
 
+    def setup_subscriber(self):
+        if not self.tf_broadcasted:
+            return  # Wait until at least one transform has been broadcasted
+        self.points_subscriber = self.create_subscription(
+            PointCloud2, '/camera_sensor/points', self.point_subscriber, 10
+        )
+        self.get_logger().info("PointCloud subscription started.")
+
     def broadcast_tf(self):
+        self.get_logger().info("broadcast_tf has started")
+        
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = "world"  # Parent frame
@@ -54,8 +65,12 @@ class PointCloudCollector(Node):
 
         self.tf_broadcaster.sendTransform(t)
 
+        self.tf_broadcasted = True
+
     def point_subscriber(self, data):   
+
         self.get_logger().info(f"Received PointCloud2: {data.width * data.height} points")
+
 
         np_msg = self.pointcloud2_to_numpy(data)
 
