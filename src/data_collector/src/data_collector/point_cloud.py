@@ -4,11 +4,15 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2, PointField
 import numpy as np
-import struct
+import math
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Header
 from builtin_interfaces.msg import Time
 from sensor_msgs_py import point_cloud2
+from tf2_ros import TransformBroadcaster
+from geometry_msgs.msg import TransformStamped
+import tf2_ros
+import tf2_geometry_msgs
 
 class PointCloudCollector(Node):
     def __init__(self):
@@ -21,7 +25,34 @@ class PointCloudCollector(Node):
         # Publisher for filtered point cloud
         self.points_publisher = self.create_publisher(PointCloud2, 'filtered_point_cloud', 10)
 
-        self.get_logger().info("PointCloudCollector has started.")
+        self.tf_broadcaster = TransformBroadcaster(self)
+
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+
+        self.timer = self.create_timer(0.1, self.broadcast_tf)
+
+        self.get_logger().info("PointCloudCollector has started")
+
+    def broadcast_tf(self):
+        t = TransformStamped()
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = "world"  # Parent frame
+        t.child_frame_id = "camera"  # Child frame
+
+        # Set translation
+        t.transform.translation.x = 0.28
+        t.transform.translation.y = 0.34
+        t.transform.translation.z = 0.28
+
+        # Convert Euler (roll=0, pitch=0.9, yaw=3.1416) to quaternion
+        qx, qy, qz, qw = self.euler_to_quaternion(3.8, 0, 3.14)
+        t.transform.rotation.x = qx
+        t.transform.rotation.y = qy
+        t.transform.rotation.z = qz
+        t.transform.rotation.w = qw
+
+        self.tf_broadcaster.sendTransform(t)
 
     def point_subscriber(self, data):   
         self.get_logger().info(f"Received PointCloud2: {data.width * data.height} points")
@@ -33,19 +64,27 @@ class PointCloudCollector(Node):
 
         ######################################
 
-        # Define a 45-degree rotation around Z-axis and a translation (1, 2, 3)
-        theta = np.radians(45)
-        cos_t, sin_t = np.cos(theta), np.sin(theta)
+        # Get transform from 'stand' to 'world'
+        transform = self.tf_buffer.lookup_transform("world", "camera", rclpy.time.Time())
 
-        transformation = np.array([
-            [cos_t, -sin_t, 0, 0.0],  # Rotate & move x
-            [sin_t, cos_t,  0, 0.0],  # Rotate & move y
-            [0,     0,      1, -1.0],  # Move z
-            [0,     0,      0, 1]     # Homogeneous row
-        ])
+        # Extract translation
+        t = transform.transform.translation
+        translation = np.array([t.x, t.y, t.z])
+
+        # Extract rotation quaternion
+        q = transform.transform.rotation
+        quaternion = np.array([q.x, q.y, q.z, q.w])
+
+        # Convert quaternion to rotation matrix
+        rotation_matrix = self.quaternion_to_matrix(quaternion)
+
+        # Create 4x4 transformation matrix
+        tf_matrix = np.eye(4)  # Identity matrix
+        tf_matrix[:3, :3] = rotation_matrix  # Top-left 3x3 is rotation
+        tf_matrix[:3, 3] = translation  # Top-right 3x1 is translation
 
         # Transform the points
-        transformed_points = self.transform_point_cloud(np_msg, transformation)
+        transformed_points = self.transform_point_cloud(np_msg, tf_matrix)
 
         ######################################
 
@@ -55,6 +94,23 @@ class PointCloudCollector(Node):
 
 # for future reference gpt wont help here, I found the below article helpful.
 # https://docs.ros.org/en/iron/p/sensor_msgs_py/sensor_msgs_py.point_cloud2.html
+
+    def euler_to_quaternion(self, roll, pitch, yaw):
+        """Convert Euler angles to a quaternion."""
+        qx = math.sin(roll / 2) * math.cos(pitch / 2) * math.cos(yaw / 2) - math.cos(roll / 2) * math.sin(pitch / 2) * math.sin(yaw / 2)
+        qy = math.cos(roll / 2) * math.sin(pitch / 2) * math.cos(yaw / 2) + math.sin(roll / 2) * math.cos(pitch / 2) * math.sin(yaw / 2)
+        qz = math.cos(roll / 2) * math.cos(pitch / 2) * math.sin(yaw / 2) - math.sin(roll / 2) * math.sin(pitch / 2) * math.cos(yaw / 2)
+        qw = math.cos(roll / 2) * math.cos(pitch / 2) * math.cos(yaw / 2) + math.sin(roll / 2) * math.sin(pitch / 2) * math.sin(yaw / 2)
+        return qx, qy, qz, qw
+
+    def quaternion_to_matrix(self, q):
+        """Convert quaternion [x, y, z, w] to a rotation matrix."""
+        x, y, z, w = q
+        return np.array([
+            [1 - 2*y**2 - 2*z**2, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
+            [2*x*y + 2*z*w, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*x*w],
+            [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x**2 - 2*y**2]
+        ])
 
     def numpy_to_pointcloud2(self, np_array):
         """Convert a NumPy array to a PointCloud2 message."""
