@@ -18,23 +18,23 @@ class PointCloudCollector(Node):
     def __init__(self):
         super().__init__('point_cloud')
 
-        self.tf_broadcasted = False  # Flag to track if transform has been published
+        self.tf_broadcasted = False 
 
         self.timer = self.create_timer(0.1, self.broadcast_tf)
-
         self.tf_broadcaster = TransformBroadcaster(self)
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
         # Delay subscribing to point clouds for 0.5 seconds
-        self.create_timer(0.5, self.setup_subscriber)
+        self.create_timer(1.0, self.setup_subscriber)
 
         # Publisher for filtered point cloud
         self.points_publisher = self.create_publisher(PointCloud2, 'filtered_point_cloud', 10)
 
         self.get_logger().info("PointCloudCollector has started")
 
+    # This setup code endure the broadcast_tf run before the point_subscriber node so the error of frame not found wont occur
     def setup_subscriber(self):
         if not self.tf_broadcasted:
             return  # Wait until at least one transform has been broadcasted
@@ -43,8 +43,9 @@ class PointCloudCollector(Node):
         )
         self.get_logger().info("PointCloud subscription started.")
 
+    # This function broadcast the new camera frame
     def broadcast_tf(self):
-        self.get_logger().info("broadcast_tf has started")
+        self.get_logger().info("broadcast_tf has started")  
         
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
@@ -67,15 +68,12 @@ class PointCloudCollector(Node):
 
         self.tf_broadcasted = True
 
+    # This function read the pointcloud and convert it to numpy to perform operations and publish it to a filert topic for rViz2 to display
     def point_subscriber(self, data):   
 
         self.get_logger().info(f"Received PointCloud2: {data.width * data.height} points")
 
-
         np_msg = self.pointcloud2_to_numpy(data)
-
-        # filtered_points = np_msg[np_msg[:, 2] > 0.5]
-        # filtered_points = np_msg[((np_msg[:, 3].astype(np.uint32) >> 16) & 0xFF) > 2]
 
         ######################################
 
@@ -100,6 +98,15 @@ class PointCloudCollector(Node):
 
         # Transform the points
         transformed_points = self.transform_point_cloud(np_msg, tf_matrix)
+
+        # Filter the surface only keep objects
+        transformed_points = transformed_points[transformed_points[:, 2] > 0.0]
+        transformed_points = transformed_points[transformed_points[:, 0] > 0.1]
+
+        # Filter objects base on color
+        # transformed_points = transformed_points[transformed_points[:, 3] == self.extract_float_from_rgb(35, 35, 137)]
+
+        self.get_logger().info(f"{transformed_points}")
 
         ######################################
 
@@ -180,6 +187,23 @@ class PointCloudCollector(Node):
         transformed_points = np.hstack((transformed_xyz, points[:, 3:4]))
 
         return transformed_points
+
+    def extract_rgb_from_float(self, color_float):
+        # Convert float to raw bytes and interpret as uint32
+        color_int = np.frombuffer(np.float32(color_float).tobytes(), dtype=np.uint32)[0]
+
+        # Extract individual color channels
+        r = (color_int >> 16) & 0xFF  # Red channel
+        g = (color_int >> 8) & 0xFF   # Green channel
+        b = color_int & 0xFF          # Blue channel
+
+        return r, g, b
+
+    def extract_float_from_rgb(self, r, g, b):
+        # Convert float to raw bytes and interpret as uint32
+        color_int = (r << 16) | (g << 8) | b
+
+        return np.float32(color_int).view(np.float32)
 
 def main(args=None):
     rclpy.init(args=args)
