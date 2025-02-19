@@ -29,6 +29,13 @@ This repository relies on the following ROS 2 packages:
 Ensure you have ROS 2 installed and sourced. Then, clone this repository and install dependencies:
 
 ```bash
+sudo apt install curl
+curl 'https://raw.githubusercontent.com/Interbotix/interbotix_ros_manipulators/main/interbotix_ros_xsarms/install/amd64/xsarm_amd64_install.sh' > xsarm_amd64_install.sh
+chmod +x xsarm_amd64_install.sh
+./xsarm_amd64_install.sh -d humble
+```
+
+```bash
 cd ~/interbotix_ws/src
 git clone https://github.com/your_username/manipulation.git
 cd ~/interbotix_ws
