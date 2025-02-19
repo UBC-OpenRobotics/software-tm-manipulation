@@ -35,6 +35,13 @@ chmod +x xsarm_amd64_install.sh
 ./xsarm_amd64_install.sh -d humble
 ```
 
+Check that the Interbotix ROS packages were installed correctly. The command and example output are below:
+```bash
+source /opt/ros/$ROS_DISTRO/setup.bash
+source ~/interbotix_ws/install/setup.bash
+ros2 pkg list | grep interbotix
+```
+
 ```bash
 cd ~/interbotix_ws/src
 git clone https://github.com/your_username/manipulation.git
