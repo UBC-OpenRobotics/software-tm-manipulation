@@ -5,19 +5,28 @@ from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2, PointField
 from sensor_msgs_py import point_cloud2
 from std_msgs.msg import Header
+from tf2_ros import TransformBroadcaster
+from geometry_msgs.msg import TransformStamped
+import tf2_ros
 import cv2
 import numpy as np
+import math
 
 class PointExtractCollector(Node):
     """
-    This `ROS2` node subscribes to the `/camera_sensor/points` topic and publishes a filtered
-    `PointCloud2` message to the camera_mask topic. 
-    The filtering is based on a mask generated
-    from the RGB data (extracted from the point cloud) using OpenCV processing.
+        This `ROS2` node subscribes to the `/camera_sensor/points` topic and publishes a filtered
+        `PointCloud2` message to the camera_mask topic. 
+        The filtering is based on a mask generated
+        from the RGB data (extracted from the point cloud) using OpenCV processing.
     """
     def __init__(self):
         super().__init__('camera_stream_collector')
         self.display_visualization = True
+        self.tf_broadcasted = False  # Flag to track if transform has been published
+        self.timer = self.create_timer(0.1, self.broadcast_tf)
+        self.tf_broadcaster = TransformBroadcaster(self)
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
         # SUBSCRIBER: Subscribe to the point cloud topic.
         self.points_subscriber = self.create_subscription(
@@ -31,10 +40,12 @@ class PointExtractCollector(Node):
 
         self.point_data_raw = None
 
-    def point_callback(self, msg) -> None:
+    def point_callback(self, msg):
         """
             Callback for inflowing PointCloud2 messages.
         """
+        if not self.tf_broadcasted:
+            return  # Wait until at least one transform has been broadcasted
         self.point_data_raw = msg
         num_points = msg.width * msg.height
         self.get_logger().info(f"Received PointCloud2 with {num_points} points")
@@ -42,6 +53,7 @@ class PointExtractCollector(Node):
     def process_and_publish_data(self):
         """
             Main processing function
+
         """
         if self.point_data_raw is None:
             return
@@ -79,6 +91,9 @@ class PointExtractCollector(Node):
 
         mask = self.find_colored_cubes(cv_image) 
         filtered_point_cloud = self.filter_point_cloud(self.point_data_raw, mask) 
+
+        
+        # PUBLISH
         self.get_logger().info("Publishing filtered PointCloud2")
         self.publisher.publish(filtered_point_cloud)
 
@@ -107,11 +122,14 @@ class PointExtractCollector(Node):
 
         bool_mask = (mask_resized != 0)
         pc_filtered = pc_array[bool_mask].reshape(-1, pc_array.shape[-1])
-        return self.numpy_to_pointcloud2(pc_filtered)
+        pc_transformed = self.transform_point_cloud(pc_filtered)
+
+        return self.numpy_to_pointcloud2(pc_transformed)
 
     def numpy_to_pointcloud2(self, np_array):
         """
-        Converts a numpy array (shape: [N, num_fields]) to a PointCloud2 message.
+            Converts a numpy array (shape: [N, num_fields]) to a PointCloud2 message.
+        
         """
         header = Header()
         header.stamp = self.get_clock().now().to_msg()
@@ -128,7 +146,7 @@ class PointExtractCollector(Node):
 
     def __get_color_name(self, hsv_colour):
         """
-        Helper function to determine a color name from HSV values.
+            Helper function to determine a color name from HSV values.
 
         """
         h, s, v = hsv_colour
@@ -189,6 +207,86 @@ class PointExtractCollector(Node):
             cv2.waitKey(1)
         
         return combined_mask
+    
+    def broadcast_tf(self):
+        self.get_logger().info("broadcast_tf has started")
+        
+        t = TransformStamped()
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = "world"  # Parent frame
+        t.child_frame_id = "camera"  # Child frame
+
+        # Set translation
+        t.transform.translation.x = 0.28
+        t.transform.translation.y = 0.34
+        t.transform.translation.z = 0.28
+
+        # Convert Euler (roll=0, pitch=0.9, yaw=3.1416) to quaternion
+        qx, qy, qz, qw = self.euler_to_quaternion(3.8, 0, 3.14)
+        t.transform.rotation.x = qx
+        t.transform.rotation.y = qy
+        t.transform.rotation.z = qz
+        t.transform.rotation.w = qw
+
+        self.tf_broadcaster.sendTransform(t)
+        self.tf_broadcasted = True
+    
+    def quaternion_to_matrix(self, q):
+        """Convert quaternion [x, y, z, w] to a rotation matrix."""
+        x, y, z, w = q
+        return np.array([
+            [1 - 2*y**2 - 2*z**2, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
+            [2*x*y + 2*z*w, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*x*w],
+            [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x**2 - 2*y**2]
+        ])
+    
+    def euler_to_quaternion(self, roll, pitch, yaw):
+        """Convert Euler angles to a quaternion."""
+        qx = math.sin(roll / 2) * math.cos(pitch / 2) * math.cos(yaw / 2) - math.cos(roll / 2) * math.sin(pitch / 2) * math.sin(yaw / 2)
+        qy = math.cos(roll / 2) * math.sin(pitch / 2) * math.cos(yaw / 2) + math.sin(roll / 2) * math.cos(pitch / 2) * math.sin(yaw / 2)
+        qz = math.cos(roll / 2) * math.cos(pitch / 2) * math.sin(yaw / 2) - math.sin(roll / 2) * math.sin(pitch / 2) * math.cos(yaw / 2)
+        qw = math.cos(roll / 2) * math.cos(pitch / 2) * math.cos(yaw / 2) + math.sin(roll / 2) * math.sin(pitch / 2) * math.sin(yaw / 2)
+        return qx, qy, qz, qw
+    
+    def transform_point_cloud(self, points):
+        """
+        Applies a 4x4 transformation matrix to a point cloud.
+
+        Args:
+            points (np.ndarray): Nx4 array where each row is [x, y, z, rgb].
+            transformation (np.ndarray): 4x4 transformation matrix.
+
+        Returns:
+            np.ndarray: Nx4 transformed point cloud.
+        """
+        if points.shape[1] != 4:
+            raise ValueError("Input points must have shape (N, 4) with [x, y, z, rgb]")
+        
+        # TRANSFORM VIA QUATERNION
+        transform = self.tf_buffer.lookup_transform("world", "camera", rclpy.time.Time())
+        t = transform.transform.translation
+        translation = np.array([t.x, t.y, t.z])
+        q = transform.transform.rotation # Extract rotation quaternion
+        quaternion = np.array([q.x, q.y, q.z, q.w])
+        rotation_matrix = self.quaternion_to_matrix(quaternion) # Convert quaternion to rotation matrix
+        # Create 4x4 transformation matrix
+        tf_matrix = np.eye(4)  # Identity matrix
+        tf_matrix[:3, :3] = rotation_matrix  # Top-left 3x3 is rotation
+        tf_matrix[:3, 3] = translation  # Top-right 3x1 is translation
+        
+        # Convert points to homogeneous coordinates (Nx4 -> Nx3 + Nx1)
+        xyz = points[:, :3]  # Extract x, y, z
+        ones = np.ones((xyz.shape[0], 1))  # Homogeneous coordinate
+        # Convert to (N, 4) for matrix multiplication
+        xyz_homogeneous = np.hstack((xyz, ones))
+        # Apply transformation (Nx4) @ (4x4) -> (Nx4)
+        transformed_xyz_homogeneous = xyz_homogeneous @ tf_matrix.T
+        # Extract transformed x, y, z (ignore homogeneous coordinate)
+        transformed_xyz = transformed_xyz_homogeneous[:, :3]
+        # Keep original RGB values
+        transformed_points = np.hstack((transformed_xyz, points[:, 3:4]))
+
+        return transformed_points
 
 def main(args=None):
     rclpy.init(args=args)
