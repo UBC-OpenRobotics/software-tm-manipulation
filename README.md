@@ -62,9 +62,11 @@ To render pointCloud2 data one should change the global frame to `camera_depth_f
 ### Realsense Camera integration
 
 ```bash
-# git clone
+# OPTIONAL : if the realsense-ros package does not work, clone, build, then remove git trace
 cd ~/manipulation/src/
 git clone https://github.com/IntelRealSense/realsense-ros.git -b ros2-master
+cd ~/manipulation/src/realsense-ros
+rm -rf .git
 
 # init
 cd ~/manipulation
