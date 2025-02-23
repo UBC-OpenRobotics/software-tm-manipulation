@@ -54,3 +54,28 @@ ros2 launch interbotix_xsarm_moveit xsarm_moveit.launch.py robot_model:=rx150 ha
 ### Rviz2 Visualization
 
 To render pointCloud2 data one should change the global frame to `camera_depth_frame`
+
+
+
+
+
+### Realsense Camera integration
+
+```bash
+# git clone
+cd ~/manipulation/src/
+git clone https://github.com/IntelRealSense/realsense-ros.git -b ros2-master
+
+# init
+rosdep install --frpom-paths src --ignore-src --rosdistro $ROS_DISTRO --skip-keys=librealsense2 -r -y
+
+# Source
+ROS_DISTRO=humble
+source /opt/ros/$ROS_DISTRO/setup.bash
+cd ~/manipulation
+. install/local_setup.bash
+
+# test
+ros2 run realsense2_camera realsense2_camera_node
+# Success : expecting of <RealSense Node Is Up!>
+```
