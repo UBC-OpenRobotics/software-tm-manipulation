@@ -67,7 +67,13 @@ cd ~/manipulation/src/
 git clone https://github.com/IntelRealSense/realsense-ros.git -b ros2-master
 
 # init
-rosdep install --frpom-paths src --ignore-src --rosdistro $ROS_DISTRO --skip-keys=librealsense2 -r -y
+cd ~/manipulation
+rosdep install --from-paths src --ignore-src --rosdistro $ROS_DISTRO --skip-keys=librealsense2 -r -y
+# OPTIONAL : downgrade for cv
+pip install "numpy<2"
+
+# build
+colcon build
 
 # Source
 ROS_DISTRO=humble
@@ -78,4 +84,28 @@ cd ~/manipulation
 # test
 ros2 run realsense2_camera realsense2_camera_node
 # Success : expecting of <RealSense Node Is Up!>
+```
+
+
+#### Camera Node interation
+
+Function calls (bold == default value): 
+* image_types : `**rgb_frame**` 
+* frame_rate  : `6`, `15`, `30`, `**60**`
+* mirror  : `true`, `**false**`
+
+```bash
+# Publisher
+ros2 run intel_d435_camera camera_pub --ros-args --param image_type:=rgb_frame --param frame_rate:=30
+# Subscriber
+ros2 run intel_d435_camera camera_sub --ros-args --param image_type:=rgb_frame --param mirror:=true
+```
+
+Make new Files
+```bash
+cd ~/manipulation/src/intel_d435_camera/intel_d435_camera
+touch [fileName].py
+# local build/source
+colcon build --packages-select intel_d435_camera --symlink-install
+source install/setup.bash
 ```
