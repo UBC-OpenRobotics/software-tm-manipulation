@@ -13,9 +13,12 @@ import rclpy
 from actionlib_msgs.msg import GoalStatusArray
 from numpy import linalg
 from humble_gazebo_gym.common.euler_angles import EulerAngles
-from rclpy.exceptions import ROSInterruptException
-from tf.transformations import euler_from_quaternion
-
+from rclpy.exceptions import ROSInterruptException 
+# https://github.com/ros2/rclpy/blob/f8606f03d900bbd2387f51178ae5bdf5c5d7b443/rclpy/rclpy/exceptions.py
+import rclpy.logging
+import rclpy.publisher
+import rclpy.wait_for_message
+from tf_transformations import euler_from_quaternion
 
 #################################################
 # Type conversion functions #####################
@@ -384,10 +387,12 @@ def deep_update(d, u=None, fixed=False, **kwargs):  # noqa: C901
 
     # Print warning if no update dictionary or keyword argument was supplied.
     if not kwargs and not u:
-        rospy.logwarn(
-            "Returning original dictionary since no update dictionary or keyword "
-            "argument was supplied."
-        )
+        # rospy.logwarn(
+        #     "Returning original dictionary since no update dictionary or keyword "
+        #     "argument was supplied."
+        # )
+        rclpy.logging.get_logger(" Returning original dictionary since no update dictionary or keyword "
+            "argument was supplied.")
 
     return d
 
@@ -520,8 +525,13 @@ def action_server_exists(topic_name):
 
     # Validate if action server topic exists.
     try:
-        rospy.wait_for_message("%s/status" % topic_name, GoalStatusArray, timeout=5)
-    except ROSException:
+        # rospy.wait_for_message("%s/status" % topic_name, GoalStatusArray, timeout=5)
+        rclpy.wait_for_message(
+            "%s/status" % topic_name, GoalStatusArray, timeout=5
+        )
+    # except ROSException:
+    except Exception as e:
+        print(e)
         return False
 
     # Check if topic contains action client.
@@ -576,7 +586,13 @@ def find_gazebo_model_path(model_name, models_directory_path, extension=""):
                     return model_path[0], ext[1:]
 
     # If model path could not be found.
-    rospy.logwarn(
+    # rospy.logwarn(
+    #     f"Model path for '{model_name}' could not be found. Please check if the "
+    #     f"'{model_name}.sdf' or '{model_name}.urdf' file exist in the model directory "
+    #     f"'{model_directory_path}'."
+    # )
+    # ROS2:
+    rclpy.logging.get_logger(
         f"Model path for '{model_name}' could not be found. Please check if the "
         f"'{model_name}.sdf' or '{model_name}.urdf' file exist in the model directory "
         f"'{model_directory_path}'."
@@ -640,10 +656,15 @@ def normalize_quaternion(quaternion):
 
     # Normalize quaternion.
     if np.isnan(norm):
-        rospy.logwarn(
+        # rospy.logwarn(
+        #     "Quaternion could not be normalized since the norm could not be "
+        #     "calculated."
+        # )
+        rclpy.logging.get_logger(
             "Quaternion could not be normalized since the norm could not be "
             "calculated."
         )
+        
     elif norm == 0.0:  # Transform to identity.
         quaternion.x = 0.0
         quaternion.y = 0.0

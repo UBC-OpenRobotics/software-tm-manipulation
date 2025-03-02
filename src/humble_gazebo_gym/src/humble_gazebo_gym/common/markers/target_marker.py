@@ -6,10 +6,12 @@
     the marker scale using s``x``, ``y``, ``z`` max and min values.
 """
 
-import rospy
+import rclpy
 from geometry_msgs.msg import Pose, Vector3
 from humble_gazebo_gym.common.helpers import normalize_quaternion
-from rospy.exceptions import ROSInitException
+import rclpy.duration
+from rclpy.exceptions import NotInitializedException
+import rclpy.time
 from std_msgs.msg import ColorRGBA, Header
 from visualization_msgs.msg import Marker
 
@@ -91,8 +93,8 @@ class SampleRegionMarker(Marker):
             # Pre-initialize header.
             self.header = Header()
             try:  # Check if rostime was initialized.
-                self.header.stamp = rospy.Time.now()
-            except ROSInitException:
+                self.header.stamp = rclpy.time.Time.to_msg()
+            except NotInitializedException:
                 raise Exception(
                     "Goal sample region marker could not be created as the ROS time is "
                     "not initialized. Have you called init_node()?"
@@ -109,7 +111,7 @@ class SampleRegionMarker(Marker):
         self.type = Marker.CUBE if "type" not in kwargs.keys() else self.type
         self.action = Marker.ADD if "action" not in kwargs.keys() else self.action
         self.lifetime = (
-            rospy.Duration(0) if "lifetime" not in kwargs.keys() else self.lifetime
+            rclpy.duration.Duration(seconds=0).to_msg() if "lifetime" not in kwargs.keys() else self.lifetime
         )
 
         # Set class properties if not none.
