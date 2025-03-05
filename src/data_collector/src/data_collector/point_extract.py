@@ -144,12 +144,12 @@ class PointExtractCollector(Node):
         points_list = np_array.tolist()
         return point_cloud2.create_cloud(header, fields, points_list)
 
-    def __get_color_name(self, hsv_colour):
+    def __get_color_name(self, hsv_color):
         """
             Helper function to determine a color name from HSV values.
 
         """
-        h, s, v = hsv_colour
+        h, s, v = hsv_color
         if v < 50:
             return "Black"
         if s < 50:
@@ -194,9 +194,9 @@ class PointExtractCollector(Node):
             mask_temp = np.zeros(cv_image.shape[:2], dtype="uint8")
             cv2.drawContours(mask_temp, [approx], -1, 255, -1)
             mean_val = cv2.mean(cv_image, mask=mask_temp)[:3]
-            avg_colour_bgr = np.uint8([[list(mean_val)]])
-            avg_colour_hsv = cv2.cvtColor(avg_colour_bgr, cv2.COLOR_BGR2HSV)[0][0]
-            color_label = self.__get_color_name(avg_colour_hsv)
+            avg_color_bgr = np.uint8([[list(mean_val)]])
+            avg_color_hsv = cv2.cvtColor(avg_color_bgr, cv2.COLOR_BGR2HSV)[0][0]
+            color_label = self.__get_color_name(avg_color_hsv)
             label_text_color_bgr = (int(mean_val[0]), int(mean_val[1]), int(mean_val[2]))
             cv2.drawContours(cv_image, [approx], -1, (0, 255, 0), 2)
             cv2.putText(cv_image, color_label, (x, y - 10),
