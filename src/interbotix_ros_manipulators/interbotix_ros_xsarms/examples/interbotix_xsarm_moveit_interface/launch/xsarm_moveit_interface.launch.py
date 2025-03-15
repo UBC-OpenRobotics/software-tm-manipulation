@@ -231,8 +231,8 @@ def generate_launch_description():
             default_value=PathJoinSubstitution([
                 FindPackageShare('interbotix_common_sim'),
                 'worlds',
-                # 'interbotix.world',
                 'vision_kit.world',
+                # 'interbotix.world',
             ]),
             description="the file path to the Gazebo 'world' file to load.",
         )
@@ -243,7 +243,7 @@ def generate_launch_description():
             default_value='cpp',
             choices=(
                 'cpp',
-                'python',
+                # 'python',
             ),
             description=(
                 "if 'cpp', launches the custom moveit_interface C++ API node; if 'python', launch "

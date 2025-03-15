@@ -275,7 +275,7 @@ void InterbotixMoveItInterface::moveit_clear_path_constraints(void)
   move_group->clearPathConstraints();
 
   // Now that there are no constraints, reduce the planning time to the default
-  move_group->setPlanningTime(5.0);
+  move_group->setPlanningTime(10.0);
 }
 
 geometry_msgs::msg::Pose InterbotixMoveItInterface::moveit_get_ee_pose(void)

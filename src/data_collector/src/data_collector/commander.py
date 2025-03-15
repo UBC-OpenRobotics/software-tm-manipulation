@@ -25,7 +25,10 @@ class MoveItPlannerNode(Node):
         # for i in range(-5,5):
             # delta = i*0.05
 
-        self.moveTo(0.0, 0.0, 0.3)
+        self.moveTo(0.2, 0.1, 0.3)
+        self.moveTo(0.2, 0.1, 0.1)
+        self.moveTo(0.2, -0.1, 0.3)
+        self.moveTo(0.2, 0.1, 0.3)
 
     def moveTo(self, x=0.0, y=0.0, z=0.0, raw=0.0, pitch=0.0, yaw=0.0):
         self.send_plan_request(x, y, z, raw, pitch, yaw)
@@ -49,7 +52,7 @@ class MoveItPlannerNode(Node):
 
         # Assign pose to the request
         self.request.ee_pose = target_pose
-
+        
         # Call the service asynchronously
         self.future = self.client.call_async(self.request)
         self.future.add_done_callback(self.plan_response_callback)
