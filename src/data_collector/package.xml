@@ -3,21 +3,27 @@
 <package format="3">
   <name>data_collector</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="ismongai@todo.todo">ismongai</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Package for collecting and processing data from sensors using MoveIt and Open3D</description>
+  <maintainer email="ismongai@example.com">ismongai</maintainer>
+  <license>Apache-2.0</license>
 
-  <depend>rclpy</depend>
+  <!-- C++ dependencies -->
+  <depend>rclcpp</depend>
   <depend>std_msgs</depend>
-  <depend>numpy</depend>
-  <depend>open3d</depend>
 
+  <!-- Python dependencies -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>numpy</exec_depend>
+  <exec_depend>open3d</exec_depend>
+  <exec_depend>moveit_ros_planning_interface</exec_depend>
+
+  <!-- Test dependencies -->
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
 
+  <!-- Build type for Python package -->
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>  <!-- Since you're using both C++ and Python, the build type is ament_cmake -->
   </export>
 </package>

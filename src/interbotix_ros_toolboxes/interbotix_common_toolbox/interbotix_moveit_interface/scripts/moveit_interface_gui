@@ -163,7 +163,7 @@ class MoveItGUIInterface(Node, QWidget):
         self.plan_pose_button.clicked.connect(self.plan_pose_event)
         horizontal_button_layout.addWidget(self.plan_pose_button)
 
-        self.plan_position_button = QPushButton('Plan Position', self)
+        self.plan_position_button = QPushButton('Plan Position (TEST)', self)
         self.plan_position_button.clicked.connect(self.plan_position_event)
         horizontal_button_layout.addWidget(self.plan_position_button)
 

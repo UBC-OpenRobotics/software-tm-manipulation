@@ -300,6 +300,9 @@ bool InterbotixMoveItInterface::moveit_planner(
     success = moveit_plan_ee_pose(req->ee_pose);
     service_type = "Planning EE pose";
   } else if (req->cmd == MoveItPlan::Request::CMD_PLAN_POSITION) {
+    RCLCPP_INFO(
+      node_->get_logger(),
+      "TRYING IT NOW MO!");
     success = moveit_plan_ee_position(
       req->ee_pose.position.x,
       req->ee_pose.position.y,
