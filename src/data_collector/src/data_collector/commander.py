@@ -26,8 +26,12 @@ class MoveItPlannerNode(Node):
         # for i in range(-5,5):
             # delta = i*0.05
 
-        self.get_logger().info('Sending plan request...')
-        self.moveTo(0.2, 0.1, 0.3, 1, 1, 1)
+        self.get_logger().info('Sending plan requests...')
+        self.moveTo(0.2, 0.1, 0.3, 0.2, 1, 1)
+        self.moveTo(0.2, 0.1, 0.3, 0.2, 1, 1)
+        self.moveTo(0.2, 0.1, 0.3, 0.2, 1, 1)
+        self.moveTo(0.2, 0.1, 0.3, 0.2, 1, 1)
+        self.moveTo(0.2, 0.1, 0.3, 0.2, 1, 1)
         # self.moveTo(0.2, 0.1, 0.1, 0.2)
         # self.moveTo(0.2, -0.1, 0.3, 0.2)
         # self.moveTo(0.2, 0.1, 0.3, 0.2)
