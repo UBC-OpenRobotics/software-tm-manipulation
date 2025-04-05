@@ -11,6 +11,7 @@ class MoveItPlannerNode(Node):
     def __init__(self):
         super().__init__('moveit_planner_node')
 
+        self.get_logger().info('MoveIt Planner Node started')
         # Create a client for the MoveItPlan service
         self.client = self.create_client(MoveItPlan, 'moveit_plan')
 
@@ -25,13 +26,15 @@ class MoveItPlannerNode(Node):
         # for i in range(-5,5):
             # delta = i*0.05
 
-        self.moveTo(0.2, 0.1, 0.3)
-        self.moveTo(0.2, 0.1, 0.1)
-        self.moveTo(0.2, -0.1, 0.3)
-        self.moveTo(0.2, 0.1, 0.3)
+        self.get_logger().info('Sending plan request...')
+        self.moveTo(0.2, 0.1, 0.3, 1, 1, 1)
+        # self.moveTo(0.2, 0.1, 0.1, 0.2)
+        # self.moveTo(0.2, -0.1, 0.3, 0.2)
+        # self.moveTo(0.2, 0.1, 0.3, 0.2)
 
     def moveTo(self, x=0.0, y=0.0, z=0.0, raw=0.0, pitch=0.0, yaw=0.0):
         self.send_plan_request(x, y, z, raw, pitch, yaw)
+        self.get_logger().info('Waiting for plan response...')
         self.send_execute_request()
 
     def send_plan_request(self, x, y, z, raw_i, pitch_i, yaw_i):
